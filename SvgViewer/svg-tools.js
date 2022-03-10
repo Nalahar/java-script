@@ -28,6 +28,9 @@ class SvgViewer {
         this.onMouseMoveHandler = this.onMouseMove.bind(this);
         this.onMouseUpHandler = this.onMouseUp.bind(this);
 
+        this.onInputScaleChangeHandler = this.onInputScaleChange.bind(this);
+        this.onInputTranslateChangeHandler = this.onInputTranslateChange.bind(this);
+
         // UI elements
         this.containerElement = containerElement;
         this.createFileInput();
@@ -49,7 +52,6 @@ class SvgViewer {
         this.fileInput.type = 'file';
         this.fileInput.accept = 'image/*.svg';
         this.fileInput.addEventListener('change', this.onFileChangeHandler);
-        //this.fileInput.onchange;
 
         let label = document.createElement('label');
         label.htmlFor = 'svg-file-input'
@@ -92,7 +94,7 @@ class SvgViewer {
         let fileReader = e.target;
 
         let xmlDoc = document.createRange().createContextualFragment(fileReader.result);
-        let loadedSvgContent = xmlDoc.querySelector('svg').children;
+        let loadedSvg = xmlDoc.querySelector('svg');
 
         // Create SVG element that we can wrap.
         let fragment = document.createRange().createContextualFragment(`
@@ -107,9 +109,13 @@ class SvgViewer {
         this.svg = fragment.querySelector('svg');
         this.svg.onmousedown = this.onMouseDownHandler;
 
+        if (loadedSvg.hasAttribute('viewbox')) {
+            this.svg.viewBox = loadedSvg.viewBox;
+        }
+
         // Add loaded content to wrapper.
         this.graphics = fragment.querySelector('g');
-        for (let child of loadedSvgContent)
+        for (let child of loadedSvg.children)
             this.graphics.appendChild(child);
 
         // Initialize parent container.
@@ -117,7 +123,38 @@ class SvgViewer {
         while (child = this.containerElement.firstChild)
             child.remove();
 
+        let info = document.createRange().createContextualFragment(`
+            <label for="viewBoxId">ViewBox </label>
+            <input id="viewboxId" type='text' />
+
+            <label for="translationId">Translation </label>
+            <input id="translationId" type='text' />
+
+            <label for="scaleId">Scale </label>
+            <input id="scaleId" type='text' />
+        `);
+
+        this.viewBoxInfo = info.getElementById('viewboxId');
+
+        this.translationInfo = info.getElementById('translationId');
+        this.translationInfo.onchange = this.onInputTranslateChangeHandler;
+
+        this.scaleInfo = info.getElementById('scaleId');
+        this.scaleInfo.onchange = this.onInputScaleChangeHandler;
+
+        this.updateInformation();
+
+        this.containerElement.appendChild(info);
         this.containerElement.appendChild(fragment);
+    }
+
+    /**
+     * Updates information fields for svg viewbox and transform status.
+     */
+    updateInformation() {
+        this.viewBoxInfo.value = `${this.svg.viewBox.baseVal.x} ${this.svg.viewBox.baseVal.y} ${this.svg.viewBox.baseVal.width} ${this.svg.viewBox.baseVal.height}`;
+        this.translationInfo.value = `${this.translateX} ${this.translateY}`;
+        this.scaleInfo.value = this.scale;
     }
 
     /**
@@ -158,6 +195,7 @@ class SvgViewer {
         }
 
         this.updateTransform();
+        this.updateInformation();
     }
 
     /**
@@ -168,5 +206,50 @@ class SvgViewer {
     onMouseUp(e) {
         document.removeEventListener('mousemove', this.onMouseMoveHandler);
         document.removeEventListener('mouseup', this.onMouseUpHandler);
+    }
+
+    /**
+     * Handles input for scale change.
+     * @param {MouseEvent} e input change event
+     */
+    onInputScaleChange(e) {
+        console.log(e);
+
+        let newScale = parseInt(e.target.value);
+
+        if (newScale > 0 && newScale < 20) {
+            this.scale = newScale;
+            this.updateTransform();
+        }
+        else {
+            e.target.value = this.scale;
+        }
+    }
+
+    /**
+     * Handles input for translate change.
+     * @param {MouseEvent} e input change event
+     */
+    onInputTranslateChange(e) {
+        console.log(e);
+
+        let splits = e.target.value.split(' ');
+
+        if (splits.length != 2) {
+            e.target.value = `${this.translateX} ${this.translateY}`;
+            return;
+        }
+
+        let x = parseInt(splits[0]);
+        let y = parseInt(splits[1]);
+
+        if (isFinite(x) && isFinite(y)) {
+            this.translateX = x;
+            this.translateY = y;
+            this.updateTransform();
+        }
+        else {
+            e.target.value = `${this.translateX} ${this.translateY}`;
+        }
     }
 }
