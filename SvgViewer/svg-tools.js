@@ -30,6 +30,9 @@ class SvgViewer {
 
         this.onInputScaleChangeHandler = this.onInputScaleChange.bind(this);
         this.onInputTranslateChangeHandler = this.onInputTranslateChange.bind(this);
+        this.onInputWidthChangeHandler = this.onInputWidthChange.bind(this);
+        this.onInputHeightChangeHandler = this.onInputHeightChange.bind(this);
+        this.onInputViewBoxChangeHandler = this.onInputViewBoxChange.bind(this);
 
         // UI elements
         this.containerElement = containerElement;
@@ -98,7 +101,7 @@ class SvgViewer {
 
         // Create SVG element that we can wrap.
         let fragment = document.createRange().createContextualFragment(`
-            <svg width="100%" height="100%" viewbox="0 0 1920 1080"
+            <svg width="100%" height="100%" viewBox="0 0 1920 1080"
                 style="border:orange; border-width:5px; border-style:solid; background=cyan;">
                 <g transform="translate(0 0) scale(1 1)">
                     
@@ -109,32 +112,54 @@ class SvgViewer {
         this.svg = fragment.querySelector('svg');
         this.svg.onmousedown = this.onMouseDownHandler;
 
-        if (loadedSvg.hasAttribute('viewbox')) {
-            this.svg.viewBox = loadedSvg.viewBox;
+        if (loadedSvg.hasAttribute('viewBox')) {
+            this.svg.setAttribute('viewBox', loadedSvg.getAttribute('viewBox'));
+        }
+        if (loadedSvg.hasAttribute('width')) {
+            this.svg.setAttribute('width', loadedSvg.getAttribute('width'));
+        }
+        if (loadedSvg.hasAttribute('height')) {
+            this.svg.setAttribute('height', loadedSvg.getAttribute('height'));
         }
 
         // Add loaded content to wrapper.
         this.graphics = fragment.querySelector('g');
-        for (let child of loadedSvg.children)
+        let child;
+        while (child = loadedSvg.firstChild)
             this.graphics.appendChild(child);
 
         // Initialize parent container.
-        let child
         while (child = this.containerElement.firstChild)
             child.remove();
 
         let info = document.createRange().createContextualFragment(`
-            <label for="viewBoxId">ViewBox </label>
-            <input id="viewboxId" type='text' />
-
-            <label for="translationId">Translation </label>
-            <input id="translationId" type='text' />
-
-            <label for="scaleId">Scale </label>
-            <input id="scaleId" type='text' />
+            <div>
+                <label for="widthId">Width </label>
+                <input id="widthId" type='text' />
+    
+                <label for="heightId">Height </label>
+                <input id="heightId" type='text' />
+    
+                <label for="viewBoxId">ViewBox </label>
+                <input id="viewboxId" type='text' />
+            </div>
+            <div>
+                <label for="translationId">Translation </label>
+                <input id="translationId" type='text' />
+    
+                <label for="scaleId">Scale </label>
+                <input id="scaleId" type='text' />
+            </div>
         `);
 
+        this.widthInfo = info.getElementById('widthId');
+        this.widthInfo.onchange = this.onInputWidthChangeHandler;
+
+        this.heightInfo = info.getElementById('heightId');
+        this.heightInfo.onchange = this.onInputHeightChangeHandler;
+
         this.viewBoxInfo = info.getElementById('viewboxId');
+        this.viewBoxInfo.onchange = this.onInputViewBoxChangeHandler;
 
         this.translationInfo = info.getElementById('translationId');
         this.translationInfo.onchange = this.onInputTranslateChangeHandler;
@@ -152,7 +177,10 @@ class SvgViewer {
      * Updates information fields for svg viewbox and transform status.
      */
     updateInformation() {
-        this.viewBoxInfo.value = `${this.svg.viewBox.baseVal.x} ${this.svg.viewBox.baseVal.y} ${this.svg.viewBox.baseVal.width} ${this.svg.viewBox.baseVal.height}`;
+        this.widthInfo.value = this.svg.getAttribute('width');
+        this.heightInfo.value = this.svg.getAttribute('height');
+        this.viewBoxInfo.value = this.svg.getAttribute('viewBox');
+
         this.translationInfo.value = `${this.translateX} ${this.translateY}`;
         this.scaleInfo.value = this.scale;
     }
@@ -206,6 +234,39 @@ class SvgViewer {
     onMouseUp(e) {
         document.removeEventListener('mousemove', this.onMouseMoveHandler);
         document.removeEventListener('mouseup', this.onMouseUpHandler);
+    }
+
+    /**
+     * Handles input for width change.
+     * @param {MouseEvent} e input change event
+     */
+    onInputWidthChange(e) {
+        console.log(e);
+
+        this.svg.setAttribute('width', e.target.value);
+        this.updateInformation();
+    }
+
+    /**
+     * Handles input for height change.
+     * @param {MouseEvent} e input change event
+     */
+    onInputHeightChange(e) {
+        console.log(e);
+
+        this.svg.setAttribute('height', e.target.value);
+        this.updateInformation();
+    }
+
+    /**
+     * Handles input for viewBox change.
+     * @param {MouseEvent} e input change event
+     */
+    onInputViewBoxChange(e) {
+        console.log(e);
+
+        this.svg.setAttribute('viewBox', e.target.value);
+        this.updateInformation();
     }
 
     /**
