@@ -276,7 +276,7 @@ class SvgViewer {
     onInputScaleChange(e) {
         console.log(e);
 
-        let newScale = parseInt(e.target.value);
+        let newScale = parseFloat(e.target.value);
 
         if (newScale > 0 && newScale < 20) {
             this.scale = newScale;
